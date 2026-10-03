@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3550d6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233550d6'/%3E%3Cpath d='M18 33l9 9 19-20' stroke='white' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Sfide del Giorno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a tear-off day sheet up top (date, stamp count, 14-day strip), then a punch-card grid per category; favorites first. */
+:root{
+  --bg:#f3f5f9; --surface:#ffffff; --ink:#18202e; --muted:#5c6679; --line:#dde2ec;
+  --accent:#3550d6; --accent-soft:#e6eafc; --done:#17865a; --done-soft:#e2f4ec; --star:#c98a06;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141c; --surface:#181e2a; --ink:#e8ecf4; --muted:#9aa4b8; --line:#2a3242;
+  --accent:#8ea0ff; --accent-soft:#232b48; --done:#4fd39a; --done-soft:#173628; --star:#f2b630; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141c; --surface:#181e2a; --ink:#e8ecf4; --muted:#9aa4b8; --line:#2a3242;
+  --accent:#8ea0ff; --accent-soft:#232b48; --done:#4fd39a; --done-soft:#173628; --star:#f2b630; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:20px 56px;display:flex;flex-direction:column;gap:28px}
+
+/* Day sheet */
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;grid-template-columns:auto 1fr;gap:20px 28px;align-items:center}
+.leaf{display:flex;flex-direction:column;align-items:center;justify-content:center;width:112px;padding-block:10px;border-radius:10px;background:var(--accent);color:var(--surface)}
+.leaf .wd{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.leaf .dn{font-family:var(--display);font-weight:800;font-size:52px;line-height:1}
+.leaf .mo{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.sheet-main{display:flex;flex-direction:column;gap:12px;min-width:0}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,38px);line-height:1.05;margin:0;text-wrap:balance}
+.tally{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;color:var(--muted)}
+.tally b{font-family:var(--mono);font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--done);width:0;transition:width .4s ease}
+.meta{font-size:13px;color:var(--muted);display:flex;gap:6px 16px;flex-wrap:wrap}
+.strip-wrap{grid-column:1 / -1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.strip-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.strip{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px}
+.day{appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 0 5px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font:inherit;min-width:0}
+.day .n{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.day .c{font-family:var(--mono);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.day.has{background:var(--done-soft);border-color:transparent}
+.day.has .c{color:var(--done)}
+.day.today{outline:2px solid var(--accent);outline-offset:-2px}
+.day[aria-pressed="true"]{background:var(--accent-soft)}
+.day-detail{font-size:14px;color:var(--muted);min-height:1.4em}
+.day-detail strong{color:var(--ink)}
+
+/* Category tabs */
+.tabs-wrap{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-inline:-16px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.tab{appearance:none;flex:0 0 auto;display:flex;align-items:center;gap:8px;border:1px solid transparent;background:transparent;color:var(--muted);border-radius:9px;padding:8px 12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--ink);background:var(--surface)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.tab .tc{font-family:var(--mono);font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;padding:1px 6px;border-radius:99px;background:var(--line);color:var(--ink)}
+.tab[aria-selected="true"] .tc{background:var(--accent);color:var(--surface)}
+.tab .tc.full{background:var(--done);color:var(--surface)}
+
+/* Toolbar */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search{flex:1 1 220px;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+/* Sections */
+section.cat{display:flex;flex-direction:column;gap:12px}
+.cat-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px}
+h2{font-family:var(--display);font-weight:700;font-size:21px;margin:0}
+.cat-count{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.cat-note{font-size:13px;color:var(--muted);flex-basis:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.empty{font-size:14px;color:var(--muted);padding:14px;border:1px dashed var(--line);border-radius:10px}
+
+/* Game card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0;position:relative}
+.card.done{background:var(--done-soft);border-color:transparent}
+.row{display:flex;align-items:flex-start;gap:8px}
+.name{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.2;flex:1;min-width:0;overflow-wrap:anywhere}
+.desc{font-size:13.5px;color:var(--muted);margin:0}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}
+.actions{display:flex;gap:8px;margin-top:auto;padding-top:2px}
+.play{flex:1;text-align:center;text-decoration:none;font-weight:700;font-size:14px;padding:8px 10px;border-radius:8px;background:var(--accent);color:var(--surface)}
+.check{appearance:none;font:inherit;font-weight:700;font-size:14px;padding:8px 12px;border-radius:8px;border:1.5px solid var(--done);background:transparent;color:var(--done);cursor:pointer;white-space:nowrap}
+.card.done .check{background:var(--done);color:var(--surface)}
+.star{appearance:none;border:0;background:transparent;cursor:pointer;padding:2px;line-height:0;color:var(--line)}
+.star svg{width:22px;height:22px}
+.star[aria-pressed="true"]{color:var(--star)}
+.star:not([aria-pressed="true"]) svg{stroke:var(--muted)}
+.stamp{position:absolute;top:10px;right:42px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--done);border:1.5px solid var(--done);border-radius:4px;padding:1px 5px;transform:rotate(-6deg)}
+
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.backup{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+
+@media (max-width:560px){
+  .sheet{grid-template-columns:1fr}
+  .leaf{flex-direction:row;gap:10px;width:auto;padding:8px 14px;justify-content:flex-start;align-self:start}
+  .leaf .dn{font-size:30px}
+  .strip{gap:3px}
+  .day .n{font-size:9px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="sheet">
+    <div class="leaf" aria-hidden="true"><span class="wd" id="leafWd"></span><span class="dn" id="leafDn"></span><span class="mo" id="leafMo"></span></div>
+    <div class="sheet-main">
+      <h1>Sfide del Giorno</h1>
+      <div class="tally"><b id="tallyN">0 / 0</b><span id="tallyTxt">giochi fatti oggi</span></div>
+      <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+      <div class="meta"><span id="resetIn"></span><span id="syncState">Caricamento…</span></div>
+    </div>
+    <div class="strip-wrap">
+      <span class="strip-label">Ultimi 14 giorni · tocca un giorno per vedere cosa hai fatto</span>
+      <div class="strip" id="strip"></div>
+      <div class="day-detail" id="dayDetail" aria-live="polite"></div>
+    </div>
+  </header>
+
+  <nav class="tabs-wrap" aria-label="Categorie"><div class="tabs" id="tabs" role="tablist"></div></nav>
+
+  <div class="tools">
+    <label for="q" class="strip-label" hidden>Cerca</label>
+    <input id="q" aria-label="Cerca un gioco" class="search" type="search" placeholder="Cerca un gioco…" autocomplete="off">
+    <div class="chips" role="group" aria-label="Filtri">
+      <button class="chip" id="fTodo" aria-pressed="false">Solo da fare</button>
+      <button class="chip" id="fFree" aria-pressed="false">Solo gratis</button>
+    </div>
+  </div>
+
+  <main id="sections"></main>
+
+  <div class="backup">
+    <span class="strip-label">Backup</span>
+    <button class="chip" id="exportBtn" type="button">Esporta dati</button>
+    <button class="chip" id="importBtn" type="button">Importa dati</button>
+    <input id="importFile" type="file" accept="application/json,.json" hidden>
+    <span id="backupMsg" class="day-detail" aria-live="polite"></span>
+  </div>
+
+  <footer>Il conteggio si azzera a mezzanotte, ora locale. Ogni gioco pubblica il nuovo puzzle a un orario suo: i LinkedIn Games per esempio cambiano alle 9:00 italiane. I link aprono il sito ufficiale in una nuova scheda.</footer>
+</div>
+
+<script>
+const CATS = [
+  {id:"nyt", name:"New York Times", note:"Wordle e Connections sono gratis; alcuni giochi richiedono l'abbonamento."},
+  {id:"linkedin", name:"LinkedIn Games", note:"Serve un account LinkedIn. Nuovo puzzle alle 9:00 ora italiana."},
+  {id:"ita", name:"In italiano"},
+  {id:"parole", name:"Parole"},
+  {id:"logica", name:"Logica e numeri"},
+  {id:"geo", name:"Geografia"},
+  {id:"media", name:"Cinema e musica"},
+  {id:"vg", name:"Videogiochi"}
+];
+const GAMES = [
+  {id:"wordle",cat:"nyt",name:"Wordle",d:"Cinque lettere, sei tentativi.",url:"https://www.nytimes.com/games/wordle/index.html"},
+  {id:"connections",cat:"nyt",name:"Connections",d:"Sedici parole da dividere in quattro gruppi.",url:"https://www.nytimes.com/games/connections"},
+  {id:"strands",cat:"nyt",name:"Strands",d:"Crucipuzzle a tema con parola-chiave nascosta.",url:"https://www.nytimes.com/games/strands"},
+  {id:"mini",cat:"nyt",name:"The Mini",d:"Cruciverba 5×5 da un minuto.",url:"https://www.nytimes.com/crosswords/game/mini"},
+  {id:"bee",cat:"nyt",name:"Spelling Bee",d:"Quante parole con sette lettere?",url:"https://www.nytimes.com/puzzles/spelling-bee",tags:["parziale"]},
+  {id:"letterboxed",cat:"nyt",name:"Letter Boxed",d:"Parole concatenate sui lati di un quadrato.",url:"https://www.nytimes.com/puzzles/letter-boxed",paid:true},
+
+  {id:"queens",cat:"linkedin",name:"Queens",d:"Una corona per riga, colonna e regione.",url:"https://www.linkedin.com/games/queens/",tags:["account"]},
+  {id:"tango",cat:"linkedin",name:"Tango",d:"Soli e lune in equilibrio sulla griglia.",url:"https://www.linkedin.com/games/tango/",tags:["account"]},
+  {id:"zip",cat:"linkedin",name:"Zip",d:"Un'unica linea che passa da tutte le celle.",url:"https://www.linkedin.com/games/zip/",tags:["account"]},
+  {id:"minisudoku",cat:"linkedin",name:"Mini Sudoku",d:"Sudoku 6×6.",url:"https://www.linkedin.com/games/mini-sudoku/",tags:["account"]},
+  {id:"patches",cat:"linkedin",name:"Patches",d:"Ricomponi la griglia a pezzi.",url:"https://www.linkedin.com/games/patches/",tags:["account"]},
+  {id:"pinpoint",cat:"linkedin",name:"Pinpoint",d:"Indovina la categoria con meno indizi.",url:"https://www.linkedin.com/games/pinpoint/",tags:["account"]},
+  {id:"crossclimb",cat:"linkedin",name:"Crossclimb",d:"Scala di parole a indovinelli.",url:"https://www.linkedin.com/games/crossclimb/",tags:["account"]},
+  {id:"wend",cat:"linkedin",name:"Wend",d:"Gioco di parole a percorso.",url:"https://www.linkedin.com/games/wend/",tags:["account"]},
+
+  {id:"wordleglobal",cat:"ita",name:"Wordle Italiano",d:"Wordle in italiano su Wordle Global.",url:"https://wordle.global/it"},
+  {id:"parolagiorno",cat:"ita",name:"La Parola del Giorno",d:"Accenti e doppie; nuova parola alle 6:00.",url:"https://laparoladelgiorno.com/"},
+  {id:"parle",cat:"ita",name:"Par🇮🇹le",d:"Il Wordle italiano storico.",url:"https://par-le.github.io/gioco/"},
+
+  {id:"quordle",cat:"parole",name:"Quordle",d:"Quattro griglie, nove tentativi.",url:"https://www.merriam-webster.com/games/quordle/"},
+  {id:"octordle",cat:"parole",name:"Octordle",d:"Otto griglie insieme.",url:"https://octordle.com/"},
+  {id:"sedecordle",cat:"parole",name:"Sedecordle",d:"Sedici griglie. Per chi esagera.",url:"https://www.sedecordle.com/"},
+  {id:"waffle",cat:"parole",name:"Waffle",d:"Quindici scambi per sistemare le lettere.",url:"https://wafflegame.net/daily"},
+  {id:"contexto",cat:"parole",name:"Contexto",d:"Indovina la parola per vicinanza di significato.",url:"https://contexto.me/"},
+  {id:"semantle",cat:"parole",name:"Semantle",d:"Come Contexto, con punteggio di similarità.",url:"https://semantle.com/"},
+  {id:"squaredle",cat:"parole",name:"Squaredle",d:"Trova tutte le parole nella griglia.",url:"https://squaredle.com/"},
+  {id:"crosswordle",cat:"parole",name:"Crosswordle",d:"Cruciverba risolto con gli indizi a colori.",url:"https://crosswordle.com/"},
+  {id:"weaver",cat:"parole",name:"Weaver",d:"Scala di parole: cambia una lettera alla volta.",url:"https://wordwormdormdork.com/"},
+  {id:"puzzmo",cat:"parole",name:"Puzzmo",d:"Raccolta di puzzle quotidiani.",url:"https://www.puzzmo.com/"},
+
+  {id:"nerdle",cat:"logica",name:"Nerdle",d:"Wordle con le equazioni.",url:"https://nerdlegame.com/"},
+  {id:"cluesbysam",cat:"logica",name:"Clues by Sam",d:"Deduci chi è innocente e chi colpevole.",url:"https://cluesbysam.com/"},
+  {id:"nonograms",cat:"logica",name:"Nonograms",d:"Un nonogramma originale al giorno.",url:"https://nonograms.games/"},
+  {id:"murdle",cat:"logica",name:"Murdle",d:"Gialli logici a griglia.",url:"https://murdle.com/"},
+
+  {id:"geoguessr",cat:"geo",name:"GeoGuessr Daily",d:"Cinque luoghi Street View al giorno.",url:"https://www.geoguessr.com/daily-challenges",tags:["account"]},
+  {id:"worldguessr",cat:"geo",name:"WorldGuessr Daily",d:"Tre luoghi, 60 secondi ciascuno.",url:"https://www.worldguessr.com/daily"},
+  {id:"freeguessr",cat:"geo",name:"FreeGuessr",d:"Daily in quattro varianti, anche NMPZ.",url:"https://freeguessr.com/"},
+  {id:"worldle",cat:"geo",name:"Worldle",d:"Riconosci il paese dalla sagoma.",url:"https://worldle.teuteuf.fr/"},
+  {id:"globle",cat:"geo",name:"Globle",d:"Trova il paese con il caldo-freddo.",url:"https://globle-game.com/"},
+  {id:"flagle",cat:"geo",name:"Flagle",d:"Ricostruisci la bandiera.",url:"https://www.flagle.io/"},
+  {id:"tradle",cat:"geo",name:"Tradle",d:"Il paese dalle sue esportazioni.",url:"https://games.oec.world/en/tradle/"},
+
+  {id:"framed",cat:"media",name:"Framed",d:"Il film da sei fotogrammi.",url:"https://framed.wtf/"},
+  {id:"bandle",cat:"media",name:"Bandle",d:"La canzone, uno strumento alla volta.",url:"https://bandle.app/"},
+
+  {id:"loldle",cat:"vg",name:"LoLdle",d:"Cinque modalità sui campioni di League of Legends.",url:"https://loldle.net/"},
+  {id:"gamedle",cat:"vg",name:"Gamedle",d:"Il gioco da copertina, artwork o specifiche.",url:"https://www.gamedle.wtf/"},
+  {id:"guessthegame",cat:"vg",name:"GuessThe.Game",d:"Sei screenshot, un videogioco.",url:"https://guessthe.game/"},
+  {id:"lostgamer",cat:"vg",name:"LostGamer",d:"GeoGuessr dentro le mappe dei videogiochi.",url:"https://lostgamer.io/"},
+  {id:"pokedle",cat:"vg",name:"Pokédle",d:"Il Pokémon del giorno per attributi.",url:"https://pokedle.net/"},
+  {id:"pokedoku",cat:"vg",name:"PokeDoku",d:"Griglia 3×3 di Pokémon a incrocio.",url:"https://pokedoku.com/"},
+  {id:"squirdle",cat:"vg",name:"Squirdle",d:"Il primo Wordle sui Pokémon.",url:"https://squirdle.fireblend.com/"},
+  {id:"retrotrivia",cat:"vg",name:"RetroTrivia",d:"Classici dagli anni '70 ai 2000.",url:"https://retrotrivia.games/"},
+  {id:"rankdle",cat:"vg",name:"Rankdle",d:"Indovina il rank dal clip di gioco.",url:"https://rankdle.com/"}
+];
+const BY_ID = Object.fromEntries(GAMES.map(g=>[g.id,g]));
+
+/* ---------- dates ---------- */
+const pad = n=>String(n).padStart(2,"0");
+const keyOf = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayKey = ()=>keyOf(new Date());
+const fromKey = k=>{const [y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d)};
+
+/* ---------- state ---------- */
+// state: { favs: [ids], history: { "YYYY-MM-DD": [ids] } } — "done today" = history[today]
+let state = {favs:[], history:{}};
+let backend = null;      // {save(state)}
+let selectedDay = null;
+let filters = {q:"", todo:false, free:false};
+
+const LS_KEY = "sfide-del-giorno:v1";
+function lsRead(){try{const s=localStorage.getItem(LS_KEY);return s?JSON.parse(s):null}catch(e){return null}}
+function lsWrite(s){try{localStorage.setItem(LS_KEY,JSON.stringify(s))}catch(e){}}
+
+function normalize(s){
+  const out = {favs:[], history:{}};
+  if(s && Array.isArray(s.favs)) out.favs = s.favs.filter(id=>BY_ID[id]);
+  if(s && s.history && typeof s.history==="object"){
+    for(const [k,v] of Object.entries(s.history)) if(/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray(v)) out.history[k]=v.filter(id=>BY_ID[id]);
+  }
+  return out;
+}
+function prune(h){ // keep last 60 days
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-60); const ck = keyOf(cutoff);
+  const o={}; for(const [k,v] of Object.entries(h)) if(k>=ck && v.length) o[k]=v; return o;
+}
+
+/* serialized saves to the db: one write at a time, latest state wins */
+let saving=false, pending=null;
+async function persist(){
+  lsWrite(state);
+  if(!backend) return;
+  pending = JSON.parse(JSON.stringify(state));
+  if(saving) return;
+  saving=true;
+  while(pending){
+    const s=pending; pending=null;
+    try{ await backend.save(s); setSync("Sincronizzato sul tuo account"); }
+    catch(e){ setSync("Salvataggio online non riuscito: le modifiche restano su questo browser"); }
+  }
+  saving=false;
+}
+
+function doneToday(){return state.history[todayKey()]||[]}
+function toggleDone(id){
+  const k=todayKey(); const list=new Set(state.history[k]||[]);
+  list.has(id)?list.delete(id):list.add(id);
+  state.history = prune({...state.history,[k]:[...list]});
+  render(); persist();
+}
+function toggleFav(id){
+  const f=new Set(state.favs); f.has(id)?f.delete(id):f.add(id);
+  state.favs=[...f]; render(); persist();
+}
+
+/* ---------- rendering ---------- */
+const $=id=>document.getElementById(id);
+function el(tag,attrs={},...kids){
+  const n=document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)){ if(k==="class") n.className=v; else if(k==="text") n.textContent=v; else if(k.startsWith("on")) n.addEventListener(k.slice(2),v); else n.setAttribute(k,v); }
+  for(const c of kids) if(c) n.append(c);
+  return n;
+}
+const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>';
+
+function card(g, done, fav){
+  const star = el("button",{class:"star","aria-pressed":String(fav),"aria-label":(fav?"Togli ":"Aggiungi ")+g.name+(fav?" dai preferiti":" ai preferiti"),onclick:()=>toggleFav(g.id)});
+  star.innerHTML=STAR;
+  const tags = el("div",{class:"tags"});
+  if(g.paid) tags.append(el("span",{class:"tag",text:"abbonamento"}));
+  (g.tags||[]).forEach(t=>tags.append(el("span",{class:"tag",text:t})));
+  return el("article",{class:"card"+(done?" done":"")},
+    done?el("span",{class:"stamp",text:"FATTO"}):null,
+    el("div",{class:"row"}, el("span",{class:"name",text:g.name}), star),
+    el("p",{class:"desc",text:g.d}),
+    tags.childElementCount?tags:null,
+    el("div",{class:"actions"},
+      el("a",{class:"play",href:g.url,target:"_blank",rel:"noopener",text:"Gioca"}),
+      el("button",{class:"check","aria-pressed":String(done),onclick:()=>toggleDone(g.id),text:done?"✓ Fatto":"Segna fatto"})
+    )
+  );
+}
+
+function matches(g, doneSet){
+  if(filters.todo && doneSet.has(g.id)) return false;
+  if(filters.free && g.paid) return false;
+  if(filters.q){const q=filters.q.toLowerCase(); if(!(g.name.toLowerCase().includes(q)||g.d.toLowerCase().includes(q))) return false;}
+  return true;
+}
+
+function section(title, note, games, doneSet, favSet, emptyMsg){
+  const doneN = games.filter(g=>doneSet.has(g.id)).length;
+  const visible = games.filter(g=>matches(g,doneSet));
+  const grid = el("div",{class:"grid"});
+  visible.forEach(g=>grid.append(card(g,doneSet.has(g.id),favSet.has(g.id))));
+  const s = el("section",{class:"cat"},
+    el("div",{class:"cat-head"}, el("h2",{text:title}), el("span",{class:"cat-count",text:games.length?`${doneN}/${games.length} fatti`:""}), note?el("span",{class:"cat-note",text:note}):null),
+    visible.length?grid:el("p",{class:"empty",text:emptyMsg||"Nessun gioco corrisponde ai filtri."})
+  );
+  return s;
+}
+
+function render(){
+  const doneSet=new Set(doneToday()), favSet=new Set(state.favs);
+  const now=new Date();
+  $("leafWd").textContent=now.toLocaleDateString("it-IT",{weekday:"short"});
+  $("leafDn").textContent=now.getDate();
+  $("leafMo").textContent=now.toLocaleDateString("it-IT",{month:"short"});
+  const n=doneSet.size, tot=GAMES.length;
+  $("tallyN").textContent=`${n} / ${tot}`;
+  $("tallyTxt").textContent= n===1?"gioco fatto oggi":"giochi fatti oggi";
+  $("barFill").style.width=(tot?n/tot*100:0)+"%";
+
+  // strip
+  const strip=$("strip"); strip.replaceChildren();
+  const tk=todayKey();
+  for(let i=13;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i); const k=keyOf(d); const c=(state.history[k]||[]).length;
+    const b=el("button",{class:"day"+(c?" has":"")+(k===tk?" today":""),"aria-pressed":String(selectedDay===k),"aria-label":`${d.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}: ${c} giochi`,onclick:()=>{selectedDay = selectedDay===k?null:k; render();}},
+      el("span",{class:"n",text:d.toLocaleDateString("it-IT",{weekday:"narrow"})+d.getDate()}),
+      el("span",{class:"c",text:String(c)}));
+    strip.append(b);
+  }
+  const det=$("dayDetail"); det.replaceChildren();
+  const showK = selectedDay||tk; const list=(state.history[showK]||[]).map(id=>BY_ID[id].name);
+  const label = showK===tk?"Oggi":fromKey(showK).toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  det.append(el("strong",{text:label[0].toUpperCase()+label.slice(1)+": "}), document.createTextNode(list.length?list.join(", "):"nessun gioco segnato."));
+
+  // tabs
+  const favGames=GAMES.filter(g=>favSet.has(g.id));
+  const tabDefs=[
+    {id:"tutti",name:"Tutti",games:GAMES},
+    {id:"preferiti",name:"★ Preferiti",games:favGames},
+    ...CATS.map(c=>({id:c.id,name:c.name,note:c.note,games:GAMES.filter(g=>g.cat===c.id)}))
+  ];
+  if(!tabDefs.some(t=>t.id===activeTab)) activeTab="tutti";
+  const tabs=$("tabs"); tabs.replaceChildren();
+  for(const t of tabDefs){
+    const dn=t.games.filter(g=>doneSet.has(g.id)).length;
+    const full=t.games.length>0 && dn===t.games.length;
+    const b=el("button",{class:"tab",role:"tab",id:"tab-"+t.id,"aria-selected":String(t.id===activeTab),"aria-controls":"sections",tabindex:t.id===activeTab?"0":"-1",onclick:()=>selectTab(t.id)},
+      document.createTextNode(t.name),
+      el("span",{class:"tc"+(full?" full":""),text:`${dn}/${t.games.length}`}));
+    tabs.append(b);
+  }
+
+  // only the active tab's games
+  const main=$("sections"); main.replaceChildren();
+  main.setAttribute("role","tabpanel"); main.setAttribute("aria-labelledby","tab-"+activeTab);
+  if(activeTab==="tutti"){
+    if(favGames.length) main.append(section("Preferiti", null, favGames, doneSet, favSet));
+    for(const c of CATS) main.append(section(c.name, c.note, GAMES.filter(g=>g.cat===c.id), doneSet, favSet));
+  } else {
+    const t=tabDefs.find(x=>x.id===activeTab);
+    main.append(section(t.id==="preferiti"?"Preferiti":t.name, t.note, t.games, doneSet, favSet,
+      t.id==="preferiti" && !favGames.length ? "Non hai ancora preferiti. Tocca la stella su un gioco in qualsiasi scheda per aggiungerlo qui." : null));
+  }
+
+  updateReset();
+}
+
+function updateReset(){
+  const now=new Date(); const mid=new Date(now); mid.setHours(24,0,0,0);
+  const mins=Math.max(0,Math.round((mid-now)/60000)); const h=Math.floor(mins/60), m=mins%60;
+  $("resetIn").textContent=`Si azzera tra ${h} h ${pad(m)} min`;
+}
+function setSync(t){$("syncState").textContent=t}
+
+/* day rollover: re-render when the local date changes */
+let lastKey=todayKey();
+setInterval(()=>{ if(todayKey()!==lastKey){lastKey=todayKey(); selectedDay=null; render();} else updateReset(); },30000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && todayKey()!==lastKey){lastKey=todayKey(); selectedDay=null; render();} });
+
+/* tabs */
+const TAB_KEY="sfide-del-giorno:tab";
+const VALID_TABS=["tutti","preferiti",...CATS.map(c=>c.id)];
+let activeTab=(()=>{
+  const h=location.hash.slice(1); if(VALID_TABS.includes(h)) return h;
+  try{const s=localStorage.getItem(TAB_KEY); if(VALID_TABS.includes(s)) return s;}catch(e){}
+  return "tutti";
+})();
+function selectTab(id){
+  if(id===activeTab) return;
+  activeTab=id;
+  try{localStorage.setItem(TAB_KEY,id)}catch(e){}
+  render();
+  const btn=$("tab-"+id); if(btn){btn.focus({preventScroll:true}); btn.scrollIntoView({block:"nearest",inline:"nearest"});}
+  const main=$("sections");
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches && main.animate) main.animate([{opacity:.35,transform:"translateY(4px)"},{opacity:1,transform:"none"}],{duration:180,easing:"ease-out"});
+  const nav=document.querySelector(".tabs-wrap"); if(nav.getBoundingClientRect().top<=1) nav.scrollIntoView({block:"start"});
+}
+$("tabs").addEventListener("keydown",e=>{
+  if(!["ArrowRight","ArrowLeft","Home","End"].includes(e.key)) return;
+  e.preventDefault();
+  const i=VALID_TABS.indexOf(activeTab), n=VALID_TABS.length;
+  const j=e.key==="Home"?0:e.key==="End"?n-1:(i+(e.key==="ArrowRight"?1:-1)+n)%n;
+  selectTab(VALID_TABS[j]);
+});
+
+/* filters */
+$("q").addEventListener("input",e=>{filters.q=e.target.value.trim(); render();});
+$("fTodo").addEventListener("click",e=>{filters.todo=!filters.todo; e.currentTarget.setAttribute("aria-pressed",filters.todo); render();});
+$("fFree").addEventListener("click",e=>{filters.free=!filters.free; e.currentTarget.setAttribute("aria-pressed",filters.free); render();});
+
+
+/* backup: no account sync on self-hosting, so move data with a JSON file */
+$("exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify({app:"sfide-del-giorno",v:1,...state},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`sfide-del-giorno-${todayKey()}.json`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  $("backupMsg").textContent="File esportato.";
+});
+$("importBtn").addEventListener("click",()=>$("importFile").click());
+$("importFile").addEventListener("change",async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const data=JSON.parse(await f.text());
+    if(!data || (!Array.isArray(data.favs) && !data.history)) throw new Error();
+    const inc=normalize(data);
+    // merge: union of favorites and of each day's games
+    const favs=[...new Set([...state.favs,...inc.favs])];
+    const history={...state.history};
+    for(const [k,v] of Object.entries(inc.history)) history[k]=[...new Set([...(history[k]||[]),...v])];
+    state={favs,history:prune(history)}; lsWrite(state); render();
+    $("backupMsg").textContent="Dati importati e uniti a quelli di questo browser.";
+  }catch(err){ $("backupMsg").textContent="Il file non è un backup valido di Sfide del Giorno."; }
+});
+
+/* ---------- boot ---------- */
+state = normalize(lsRead());
+setSync("Salvato su questo browser");
+render();
+
+</script>
+
+</body>
+</html>
